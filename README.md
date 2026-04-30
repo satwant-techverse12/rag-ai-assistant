@@ -2,9 +2,10 @@
 
 An AI-powered **Retrieval-Augmented Generation (RAG)** system that allows users to upload PDFs and ask questions based on document content.
 
----
 
- Features
+
+ Features![Uploading Rag AI Assistant.png…]()
+
 
 * 📄 Upload PDF dynamically
 * 🤖 Ask questions from documents
