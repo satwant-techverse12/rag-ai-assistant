@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 
 app = Flask(__name__)
-
+print("App starting...")
 @app.route("/")
 def home():
     return render_template("index.html")

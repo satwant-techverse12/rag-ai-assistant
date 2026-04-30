@@ -1,36 +1,43 @@
 import os
 from dotenv import load_dotenv
-from pinecone import Pinecone
+import pinecone
+
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_pinecone import PineconeVectorStore
+from langchain_community.vectorstores import Pinecone
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
+# ✅ INIT PINECONE (VERY IMPORTANT)
+pinecone.init(
+    api_key=os.getenv("PINECONE_API_KEY"),
+    environment=os.getenv("PINECONE_ENV")
+)
+
 INDEX_NAME = "pdf-openai"
 
-#embeddings (FIXED)
+# embeddings
 embeddings = OpenAIEmbeddings(
     model="text-embedding-3-small",
     openai_api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # connect index
-vectorstore = PineconeVectorStore.from_existing_index(
+vectorstore = Pinecone.from_existing_index(
     index_name=INDEX_NAME,
     embedding=embeddings
 )
 
 retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 
-# LLM (better)
+# LLM
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     openai_api_key=os.getenv("OPENAI_API_KEY")
 )
 
-# ✅ strong prompt
+# prompt
 template = """
 You are a helpful assistant.
 
@@ -51,21 +58,31 @@ prompt = PromptTemplate.from_template(template)
 
 
 def format_docs(docs):
-    return "\n\n".join(d.page_content for d in docs)
+    return "\n\n".join(doc.page_content for doc in docs)
 
 
 def ask_question(query):
-    docs = retriever.invoke(query)
+    try:
+        docs = retriever.invoke(query)
 
-    # ✅ fallback safety
-    if not docs:
-        return "No relevant information found in documents."
+        # fallback if nothing found
+        if not docs:
+            return "No relevant information found in documents."
 
-    context = format_docs(docs)
+        context = format_docs(docs)
 
-    chain = prompt | llm | StrOutputParser()
+        chain = prompt | llm | StrOutputParser()
 
-    return chain.invoke({
-        "context": context,
-        "question": query
-    })
+        answer = chain.invoke({
+            "context": context,
+            "question": query
+        })
+
+        # ✅ ADD SOURCE CITATION (IMPORTANT FOR JOB)
+        sources = set(doc.metadata.get("source", "unknown") for doc in docs)
+
+        return f"{answer}\n\n📄 Sources: {', '.join(sources)}"
+
+    except Exception as e:
+        print("ERROR:", str(e))  # logs in Render
+        return "❌ Something went wrong. Please try again."
