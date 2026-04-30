@@ -1,0 +1,17 @@
+Flask
+gunicorn
+
+langchain
+langchain-community
+langchain-openai
+langchain-pinecone
+
+openai
+pinecone-client
+
+tiktoken
+pypdf
+python-dotenv
+
+numpy
+pandas
