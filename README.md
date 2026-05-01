@@ -4,7 +4,8 @@ An AI-powered **Retrieval-Augmented Generation (RAG)** system that allows users 
 
 
 
- Features![Uploading Rag AI Assistant.png…]()
+ ## Live Demo
+https://rag-ai-assistant-hn6w.onrender.com
 
 
 * 📄 Upload PDF dynamically
