@@ -1,63 +1,47 @@
-from flask import Flask, request, jsonify, render_template
-from rag_pipeline import ask_question
-from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
-
-app = Flask(__name__)
-print("App starting...")
-@app.route("/")
-def home():
-    return render_template("index.html")
+from flask import Flask, jsonify
+from werkzeug.exceptions import HTTPException
+from routes.api import api
 
 
-@app.route("/ask", methods=["POST"])
-def ask():
-    try:
-        data = request.get_json()
+def create_app():
+    app = Flask(__name__, template_folder="templates")
 
-        if not data or "question" not in data:
-            return jsonify({"error": "Question is required"}), 400
+    app.config.update(
+        MAX_CONTENT_LENGTH=10 * 1024 * 1024,
+        JSON_SORT_KEYS=False
+    )
 
-        question = data["question"]
+    # ✅ NO prefix here (Option B)
+    app.register_blueprint(api)
 
-        if not question.strip():
-            return jsonify({"error": "Empty question"}), 400
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"})
 
-        answer = ask_question(question)
+    @app.errorhandler(HTTPException)
+    def handle_http_error(e):
+        return jsonify({
+            "error": e.name,
+            "message": e.description
+        }), e.code
 
-        return jsonify({"answer": answer})
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        print("ERROR:", str(e))
+        return jsonify({"error": "Internal server error"}), 500
 
-    except Exception as e:
-        print("Error:", str(e))
-        return jsonify({"error": "Something went wrong"}), 500
-
-
-UPLOAD_FOLDER = "documents"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-@app.route("/upload", methods=["POST"])
-def upload_pdf():
-    if "file" not in request.files:
-        return jsonify({"message": "No file uploaded"}), 400
-
-    file = request.files["file"]
-
-    if file.filename == "":
-        return jsonify({"message": "No selected file"}), 400
-
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-
-    file.save(filepath)
-
-    # 🔥 process immediately
-    from ingest import process_pdf
-    process_pdf(filepath)
-
-    return jsonify({"message": "✅ PDF uploaded & indexed!"})
+    return app
 
 
-
+app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )

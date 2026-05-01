@@ -1,239 +1,227 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>AI RAG Assistant</title>
+<meta charset="UTF-8">
+<title>RAG AI Assistant</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
+<style>
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+}
 
-        body {
-            margin: 0;
-            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+.wrapper {
+    display: flex;
+    height: 100vh;
+}
 
-        .container {
-            width: 600px;
-            background: rgba(255,255,255,0.05);
-            padding: 25px;
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-        }
+.sidebar {
+    width: 260px;
+    background: #020617;
+    padding: 20px;
+    border-right: 1px solid #1e293b;
+}
 
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+.sidebar h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
 
-        textarea {
-            width: 100%;
-            height: 80px;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            outline: none;
-            font-size: 14px;
-            resize: none;
-        }
+.upload-box {
+    background: #0f172a;
+    padding: 15px;
+    border-radius: 10px;
+}
 
-        button {
-            margin-top: 10px;
-            width: 100%;
-            padding: 12px;
-            background: #00c6ff;
-            border: none;
-            border-radius: 8px;
-            color: black;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+.upload-box input {
+    width: 100%;
+    margin-bottom: 10px;
+}
 
-        button:disabled {
-            background: gray;
-            cursor: not-allowed;
-        }
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
 
-        button:hover:not(:disabled) {
-            background: #0072ff;
-            color: white;
-        }
+.header {
+    padding: 15px;
+    border-bottom: 1px solid #1e293b;
+    font-weight: 500;
+}
 
-        .chat-box {
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+.chat {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
 
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            line-height: 1.5;
-        }
+.message {
+    max-width: 70%;
+    margin-bottom: 15px;
+    padding: 12px;
+    border-radius: 10px;
+}
 
-        .user {
-            background: #0072ff;
-            text-align: right;
-        }
+.user {
+    background: #2563eb;
+    margin-left: auto;
+}
 
-        .bot {
-            background: #444;
-            text-align: left;
-        }
+.bot {
+    background: #1e293b;
+}
 
-        .loading {
-            text-align: center;
-            margin-top: 10px;
-            display: none;
-        }
-    </style>
+.input-box {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #1e293b;
+}
+
+.input-box textarea {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    resize: none;
+    background: #020617;
+    color: white;
+}
+
+.input-box button {
+    margin-left: 10px;
+    padding: 10px 15px;
+    background: #2563eb;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+}
+</style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="wrapper">
 
-    <h2>🧠 AI RAG Assistant</h2>
+    <div class="sidebar">
+        <h2>RAG Assistant</h2>
 
-    <input type="file" id="pdfFile" accept="application/pdf">
-    <button onclick="uploadPDF()">Upload PDF</button>
+        <div class="upload-box">
+            <input type="file" id="pdfFile" accept="application/pdf">
+            <button onclick="uploadPDF()">Upload</button>
+        </div>
 
-    <textarea id="question" placeholder="Ask something from your documents..."></textarea>
+        <button onclick="clearChat()" style="margin-top:20px;width:100%;">Clear Chat</button>
+    </div>
 
-    <button id="askBtn" onclick="ask()">Ask AI</button>
+    <div class="main">
 
-    <div class="loading" id="loading">⏳ Thinking...</div>
+        <div class="header">
+            Document AI Chat
+        </div>
 
-    <div class="chat-box" id="chat"></div>
+        <div class="chat" id="chat"></div>
+
+        <div class="input-box">
+            <textarea id="question" placeholder="Ask your document..."></textarea>
+            <button onclick="ask()">Send</button>
+        </div>
+
+    </div>
 
 </div>
 
 <script>
-async function ask() {
-    let inputBox = document.getElementById("question");
-    let button = document.getElementById("askBtn");
-    let question = inputBox.value.trim();
 
-    if (!question) return;
-
-    let chat = document.getElementById("chat");
-
-    // show user message
-    chat.innerHTML += `<div class="message user">${question}</div>`;
-
-    inputBox.value = "";
-    button.disabled = true;
-    document.getElementById("loading").style.display = "block";
-
-    try {
-        let response = await fetch("/ask", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ question: question })
-        });
-
-        let data = await response.json();
-
-        document.getElementById("loading").style.display = "none";
-        button.disabled = false;
-
-        if (data.error) {
-            chat.innerHTML += `<div class="message bot">❌ ${data.error}</div>`;
-        } else if (!data.answer || data.answer.includes("I don't know")) {
-            chat.innerHTML += `<div class="message bot">🤔 No relevant info found in documents</div>`;
-        } else {
-            typeText(data.answer);
-        }
-
-        scrollToBottom();
-
-    } catch (error) {
-        document.getElementById("loading").style.display = "none";
-        button.disabled = false;
-
-        chat.innerHTML += `<div class="message bot">❌ Server error</div>`;
-        scrollToBottom();
-    }
-}
-
-// typing animation
-function typeText(text) {
+// Add message
+function addMessage(text, type) {
     let chat = document.getElementById("chat");
     let div = document.createElement("div");
-    div.className = "message bot";
+    div.className = "message " + type;
+    div.innerText = text;
     chat.appendChild(div);
-
-    let i = 0;
-    function typing() {
-        if (i < text.length) {
-            div.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(typing, 10);
-        }
-    }
-    typing();
-}
-
-// enter key support
-document.getElementById("question").addEventListener("keypress", function(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        ask();
-    }
-});
-
-// auto scroll
-function scrollToBottom() {
-    let chat = document.getElementById("chat");
     chat.scrollTop = chat.scrollHeight;
 }
 
-async function uploadPDF() {
-    let fileInput = document.getElementById("pdfFile");
-    let file = fileInput.files[0];
+// Ask question
+async function ask() {
+    let input = document.getElementById("question");
+    let q = input.value.trim();
+    if (!q) return;
 
-    if (!file) {
-        alert("Select a PDF first");
-        return;
+    addMessage(q, "user");
+    input.value = "";
+
+    addMessage("Thinking...", "bot");
+    let loadingMsg = document.querySelector(".bot:last-child");
+
+    try {
+        let res = await fetch("/ask", {   // ✅ FIXED
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ question: q })
+        });
+
+        let data = await res.json();
+
+        if (data.success) {
+            loadingMsg.innerText = data.answer || "No answer";
+        } else {
+            loadingMsg.innerText = data.error || "Error occurred";
+        }
+
+    } catch {
+        loadingMsg.innerText = "Server error";
+    }
+}
+
+// Upload PDF
+async function uploadPDF() {
+    let file = document.getElementById("pdfFile").files[0];
+
+    if (!file || file.type !== "application/pdf") {
+        return alert("Please select a valid PDF file");
     }
 
     let formData = new FormData();
     formData.append("file", file);
 
     try {
-        let res = await fetch("/upload", {
+        let res = await fetch("/upload", {   // ✅ FIXED
             method: "POST",
             body: formData
         });
 
         let data = await res.json();
-        alert(data.message);
 
-    } catch (err) {
-        alert("Upload failed");
+        if (data.success) {
+            alert(data.message || "Upload successful");
+        } else {
+            alert(data.error || "Upload failed");
+        }
+
+    } catch {
+        alert("Server error");
     }
 }
 
+// Clear chat
+function clearChat() {
+    document.getElementById("chat").innerHTML = "";
+}
 
-
-
-
-
-
+// Enter to send
+document.getElementById("question").addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        ask();
+    }
+});
 </script>
 
 </body>
